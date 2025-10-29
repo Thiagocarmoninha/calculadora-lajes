@@ -1,2 +1,5 @@
 name = "lajes-backend"
 pages_build_output_dir = "."
+
+[observability]
+enabled = true
