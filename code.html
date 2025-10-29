@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compra de Lajes - Calculadora e Orçamento</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #333; }
+        label { display: block; margin-top: 10px; }
+        input, select { width: 100%; padding: 8px; margin-top: 5px; }
+        button { background: #28a745; color: white; padding: 10px; border: none; cursor: pointer; width: 100%; margin-top: 20px; }
+        button:hover { background: #218838; }
+        #resultado { margin-top: 20px; padding: 10px; background: #e9ecef; border-radius: 5px; }
+        #carrinho { margin-top: 20px; padding: 10px; background: #d4edda; border-radius: 5px; display: none; }
+        .upload-section { margin-top: 20px; padding: 10px; background: #f8f9fa; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Calculadora e Compra de Lajes</h1>
+        <p>Faça upload de uma imagem do projeto para análise simulada por IA ou insira as medidas manualmente. Todas as medidas em metros.</p>
+        
+        <div class="upload-section">
+            <h3>Opção 1: Upload para Análise Simulada por IA</h3>
+            <label for="uploadImagem">Upload Imagem do Projeto (JPG/PNG):</label>
+            <input type="file" id="uploadImagem" accept=".jpg,.jpeg,.png">
+            <button onclick="analisarComIA()">Analisar com IA (Simulação)</button>
+            <p><em>Simulação: A IA preencherá largura, comprimento e altura com valores fictícios (ex.: 2.5m x 4.2m, H16).</em></p>
+        </div>
+        
+        <h3>Opção 2: Inserção Manual</h3>
+        <label for="largura">Largura da Laje (em metros):</label>
+        <input type="number" id="largura" placeholder="Ex: 2.0" step="0.01" required>
+        
+        <label for="comprimento">Comprimento da Laje (em metros, mínimo 1m):</label>
+        <input type="number" id="comprimento" placeholder="Ex: 5" step="0.01" required min="1">
+        
+        <label for="alturaViga">Altura da Viga:</label>
+        <select id="alturaViga" required>
+            <option value="">Selecione</option>
+            <option value="H8">H8 (8 cm)</option>
+            <option value="H10">H10 (10 cm)</option>
+            <option value="H12">H12 (12 cm)</option>
+            <option value="H14">H14 (14 cm)</option>
+            <option value="H16">H16 (16 cm)</option>
+            <option value="H18">H18 (18 cm)</option>
+            <option value="H20">H20 (20 cm)</option>
+            <option value="H22">H22 (22 cm)</option>
+            <option value="H24">H24 (24 cm)</option>
+            <option value="H26">H26 (26 cm)</option>
+            <option value="H28">H28 (28 cm)</option>
+            <option value="H30">H30 (30 cm)</option>
+            <option value="H32">H32 (32 cm)</option>
+        </select>
+        
+        <label for="precoViga">Preço por Metro de Viga (R$):</label>
+        <input type="number" id="precoViga" placeholder="Ex: 50" step="0.01" required>
+        
+        <label for="precoIsopor">Preço por Metro Linear de Isopor (R$):</label>
+        <input type="number" id="precoIsopor" placeholder="Ex: 20" step="0.01" required>
+        
+        <button onclick="calcular()">Calcular Orçamento</button>
+        
+        <div id="resultado"></div>
+        
+        <button id="comprarBtn" onclick="adicionarCarrinho()" style="display: none;">Adicionar ao Carrinho</button>
+        
+        <div id="carrinho"></div>
+    </div>
+
+    <script>
+        function analisarComIA() {
+            const fileInput = document.getElementById('uploadImagem');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Selecione uma imagem para análise simulada.');
+                return;
+            }
+            
+            // Simulação: Em vez de chamar OpenAI, preenche com valores fictícios
+            // (Como se a IA tivesse analisado a imagem e extraído: largura 2.5m, comprimento 4.2m, altura H16)
+            alert('Simulação: IA analisando imagem... (Valores fictícios preenchidos para teste.)');
+            
+            // Valores simulados (edite aqui para testar diferentes cenários)
+            document.getElementById('largura').value = 2.5; // Largura extraída
+            document.getElementById('comprimento').value = 4.2; // Comprimento extraído
+            document.getElementById('alturaViga').value = 'H16'; // Altura detectada
+            
+            alert('Análise simulada concluída! Campos preenchidos automaticamente.');
+        }
+        
+        function calcular() {
+            const W = parseFloat(document.getElementById('largura').value);
+            let C = parseFloat(document.getElementById('comprimento').value);
+            const alturaViga = document.getElementById('alturaViga').value;
+            const precoViga = parseFloat(document.getElementById('precoViga').value);
+            const precoIsopor = parseFloat(document.getElementById('precoIsopor').value);
+            
+            if (!W || !C || !alturaViga || !precoViga || !precoIsopor) {
+                alert('Preencha todos os campos!');
+                return;
+            }
+            
+            if (C < 1) {
+                alert('Comprimento mínimo é 1 metro. Ajustando para 1m.');
+                C = 1;
+            }
+            C = Math.round(C / 0.1) * 0.1;
+            
+            const vigaLargura = 0.13;
+            const isoporLargura = 0.3;
+            const ciclo = vigaLargura + isoporLargura;
+            const n = Math.ceil((W + isoporLargura) / ciclo);
+            const m = n - 1;
+            const larguraCoberta = n * vigaLargura + m * isoporLargura;
+            
+            const qtdViga = n * C;
+            const qtdIsopor = qtdViga;
+            
+            const custoViga = qtdViga * precoViga;
+            const custoIsopor = qtdIsopor * precoIsopor;
+            const total = custoViga + custoIsopor;
+            
+            document.getElementById('resultado').innerHTML = `
+                <h3>Resultado do Cálculo:</h3>
+                <p>Altura da Viga Selecionada: ${alturaViga}</p>
+                <p>Número de Vigas: ${n}</p>
+                <p>Número de EPS (Isopor): ${qtdIsopor}</p>
+                <p>Largura Coberta: ${larguraCoberta.toFixed(2)} metros</p>
+                <p>Comprimento Ajustado da Laje: ${C.toFixed(2)} metros</p>
+                <p>Quantidade de Viga: ${qtdViga.toFixed(2)} metros lineares</p>
+                <p>Quantidade de EPS: ${qtdIsopor.toFixed(2)} metros lineares</p>
+                <h4>Orçamento:</h4>
+                <p>Custo Vigas: R$ ${custoViga.toFixed(2)}</p>
+                <p>Custo EPS: R$ ${custoIsopor.toFixed(2)}</p>
+                <p><strong>Total: R$ ${total.toFixed(2)}</strong></p>
+            `;
+            
+            document.getElementById('comprarBtn').style.display = 'block';
+        }
+        
+        function adicionarCarrinho() {
+            const resultado = document.getElementById('resultado').innerText;
+            document.getElementById('carrinho').innerHTML = `
+                <h3>Carrinho de Compras</h3>
+                <p>Item adicionado:</p>
+                <pre>${resultado}</pre>
+                <p><em>Simulação: Em um site real, isso seria enviado para um sistema de pagamento.</em></p>
+            `;
+            document.getElementById('carrinho').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
