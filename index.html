@@ -1,65 +1,192 @@
-<script>
-const $ = (id) => document.getElementById(id);
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compra de Lajes - Calculadora e Orçamento</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #333; }
+        label { display: block; margin-top: 10px; }
+        input, select { width: 100%; padding: 8px; margin-top: 5px; }
+        button { background: #28a745; color: white; padding: 10px; border: none; cursor: pointer; width: 100%; margin-top: 20px; }
+        button:hover { background: #218838; }
+        #resultado { margin-top: 20px; padding: 10px; background: #e9ecef; border-radius: 5px; }
+        #carrinho { margin-top: 20px; padding: 10px; background: #d4edda; border-radius: 5px; display: none; }
+        .upload-section { margin-top: 20px; padding: 10px; background: #f8f9fa; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Calculadora e Compra de Lajes</h1>
+        <p>Insira os dados da laje ou faça upload do projeto para análise automática por IA. Todas as medidas em metros.</p>
+        
+        <div class="upload-section">
+            <h3>Upload do Projeto (Opcional - Análise por IA)</h3>
+            <label for="uploadPdf">Upload PDF do Projeto:</label>
+            <input type="file" id="uploadPdf" accept=".pdf">
+            
+            <label for="uploadImagem">Upload Imagem do Projeto (JPG/PNG):</label>
+            <input type="file" id="uploadImagem" accept=".jpg,.jpeg,.png">
+            
+            <button onclick="analisarComIA()">Analisar com IA</button>
+            <p><em>A IA analisará o arquivo e preencherá os campos automaticamente.</em></p>
+        </div>
+        
+        <label for="largura">Largura da Laje (em metros):</label>
+        <input type="number" id="largura" placeholder="Ex: 2.0" step="0.01" required>
+        
+        <label for="comprimento">Comprimento da Laje (em metros, mínimo 1m):</label>
+        <input type="number" id="comprimento" placeholder="Ex: 5" step="0.01" required min="1">
+        
+        <label for="alturaViga">Altura da Viga:</label>
+        <select id="alturaViga" required>
+            <option value="">Selecione</option>
+            <option value="H8">H8 (8 cm)</option>
+            <option value="H10">H10 (10 cm)</option>
+            <option value="H12">H12 (12 cm)</option>
+            <option value="H14">H14 (14 cm)</option>
+            <option value="H16">H16 (16 cm)</option>
+            <option value="H18">H18 (18 cm)</option>
+            <option value="H20">H20 (20 cm)</option>
+            <option value="H22">H22 (22 cm)</option>
+            <option value="H24">H24 (24 cm)</option>
+            <option value="H26">H26 (26 cm)</option>
+            <option value="H28">H28 (28 cm)</option>
+            <option value="H30">H30 (30 cm)</option>
+            <option value="H32">H32 (32 cm)</option>
+        </select>
+        
+        <label for="precoViga">Preço por Metro de Viga (R$):</label>
+        <input type="number" id="precoViga" placeholder="Ex: 50" step="0.01" required>
+        
+        <label for="precoIsopor">Preço por Metro Linear de Isopor (R$):</label>
+        <input type="number" id="precoIsopor" placeholder="Ex: 20" step="0.01" required>
+        
+        <button onclick="calcular()">Calcular Orçamento</button>
+        
+        <div id="resultado"></div>
+        
+        <button id="comprarBtn" onclick="adicionarCarrinho()" style="display: none;">Adicionar ao Carrinho</button>
+        
+        <div id="carrinho"></div>
+    </div>
 
-function setLoading(isLoading) {
-  const btn = $("analisarBtn");
-  if (!btn) return;
-  btn.disabled = isLoading;
-  btn.innerText = isLoading ? "Analisando..." : "Analisar com IA";
-}
-
-async function analisarComIA() {
-  const pdfFile = $("uploadPdf").files[0];
-  const imgFile = $("uploadImagem").files[0];
-
-  if (!pdfFile && !imgFile) {
-    alert("Faça upload de pelo menos um arquivo (PDF ou imagem).");
-    return;
-  }
-
-  const formData = new FormData();
-  if (imgFile) formData.append("file", imgFile, imgFile.name);
-  if (pdfFile) formData.append("file", pdfFile, pdfFile.name);
-
-  setLoading(true);
-  try {
-    const resp = await fetch("/api/analisar", {
-      method: "POST",
-      body: formData,
-    });
-
-    if (!resp.ok) {
-      const text = await resp.text().catch(() => "");
-      throw new Error(text || `Falha (${resp.status})`);
-    }
-
-    const data = await resp.json();
-
-    // Normaliza e preenche campos
-    $("largura").value = Number(data.largura ?? 2.0);
-    $("comprimento").value = Number(data.comprimento ?? 5.0);
-    $("alturaViga").value = String(data.alturaViga ?? "H12");
-
-    alert("Análise concluída! Campos preenchidos automaticamente.");
-  } catch (err) {
-    console.error(err);
-    alert("Erro na análise: " + (err?.message || "desconhecido"));
-  } finally {
-    setLoading(false);
-  }
-}
-
-// adiciona o id ao botão existente
-(function ensureAnalyzeBtn() {
-  const btns = document.getElementsByTagName("button");
-  for (const b of btns) {
-    if (b.textContent?.includes("Analisar com IA")) {
-      b.id = "analisarBtn";
-      b.onclick = analisarComIA;
-      break;
-    }
-  }
-})();
-
-// teu calcular() e adicionarCarrinho() permanecem como estão
-</script>
+    <script>
+        async function analisarComIA() {
+            const pdfFile = document.getElementById('uploadPdf').files[0];
+            const imgFile = document.getElementById('uploadImagem').files[0];
+            
+            if (!pdfFile && !imgFile) {
+                alert('Faça upload de pelo menos um arquivo (PDF ou imagem) para análise.');
+                return;
+            }
+            
+            // Por enquanto, suporte apenas imagem (PDF pode ser adicionado com conversão no backend)
+            let fileToSend = imgFile;
+            if (pdfFile && !imgFile) {
+                alert('PDF não suportado ainda. Use imagem (JPG/PNG).');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', fileToSend);
+            
+            try {
+                // Substitua pela URL real do seu backend no Cloudflare
+                const response = await fetch('https://seu-backend-cloudflare.com/analisar', {
+                    method: 'POST',
+                    body: formData,
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Erro na análise.');
+                }
+                
+                const data = await response.json();
+                console.log('Dados da IA:', data); // Debug
+                
+                // Preencher campos com dados da IA
+                document.getElementById('largura').value = data.largura || 2.0;
+                document.getElementById('comprimento').value = data.comprimento || 5.0;
+                document.getElementById('alturaViga').value = data.alturaViga || 'H12';
+                
+                alert('Análise concluída! Campos preenchidos automaticamente.');
+            } catch (error) {
+                console.error('Erro:', error); // Debug
+                alert('Erro: ' + error.message);
+            }
+        }
+        
+        function calcular() {
+            const W = parseFloat(document.getElementById('largura').value); // Largura em metros
+            let C = parseFloat(document.getElementById('comprimento').value); // Comprimento em metros
+            const alturaViga = document.getElementById('alturaViga').value;
+            const precoViga = parseFloat(document.getElementById('precoViga').value);
+            const precoIsopor = parseFloat(document.getElementById('precoIsopor').value);
+            
+            if (!W || !C || !alturaViga || !precoViga || !precoIsopor) {
+                alert('Preencha todos os campos!');
+                return;
+            }
+            
+            // Ajustar comprimento mínimo para 1m, incrementos de 0.10m
+            if (C < 1) {
+                alert('Comprimento mínimo é 1 metro. Ajustando para 1m.');
+                C = 1;
+            }
+            C = Math.round(C / 0.1) * 0.1; // Arredondar para múltiplo de 0.10
+            
+            // Constantes em metros: viga = 0.13 m, isopor = 0.3 m
+            const vigaLargura = 0.13;
+            const isoporLargura = 0.3;
+            
+            // Cálculo: n = ceil((W + isoporLargura) / (vigaLargura + isoporLargura))
+            const ciclo = vigaLargura + isoporLargura; // 0.43 m
+            const n = Math.ceil((W + isoporLargura) / ciclo);
+            const m = n - 1;
+            const larguraCoberta = n * vigaLargura + m * isoporLargura;
+            
+            // Quantidades
+            const qtdViga = n * C; // metros lineares de viga
+            const qtdIsopor = qtdViga; // EPS = metros lineares de viga (1 EPS por metro linear)
+            
+            // Orçamento
+            const custoViga = qtdViga * precoViga;
+            const custoIsopor = qtdIsopor * precoIsopor;
+            const total = custoViga + custoIsopor; // Total sem margem
+            
+            // Exibir resultado
+            document.getElementById('resultado').innerHTML = 
+                <h3>Resultado do Cálculo:</h3>
+                <p>Altura da Viga Selecionada: ${alturaViga}</p>
+                <p>Número de Vigas: ${n}</p>
+                <p>Número de EPS (Isopor): ${qtdIsopor}</p>
+                <p>Largura Coberta: ${larguraCoberta.toFixed(2)} metros</p>
+                <p>Comprimento Ajustado da Laje: ${C.toFixed(2)} metros</p>
+                <p>Quantidade de Viga: ${qtdViga.toFixed(2)} metros lineares</p>
+                <p>Quantidade de EPS: ${qtdIsopor.toFixed(2)} metros lineares</p>
+                <h4>Orçamento:</h4>
+                <p>Custo Vigas: R$ ${custoViga.toFixed(2)}</p>
+                <p>Custo EPS: R$ ${custoIsopor.toFixed(2)}</p>
+                <p><strong>Total: R$ ${total.toFixed(2)}</strong></p>
+            ;
+            
+            document.getElementById('comprarBtn').style.display = 'block';
+        }
+        
+        function adicionarCarrinho() {
+            const resultado = document.getElementById('resultado').innerText;
+            document.getElementById('carrinho').innerHTML = 
+                <h3>Carrinho de Compras</h3>
+                <p>Item adicionado:</p>
+                <pre>${resultado}</pre>
+                <p><em>Simulação: Em um site real, isso seria enviado para um sistema de pagamento.</em></p>
+            ;
+            document.getElementById('carrinho').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
