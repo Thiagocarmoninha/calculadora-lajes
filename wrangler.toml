@@ -1,5 +1,256 @@
-name = "lajes-backend"
-pages_build_output_dir = "."
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Compra de Lajes - Calculadora e Orçamento</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; }
+    .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    h1 { text-align: center; color: #333; }
+    label { display: block; margin-top: 10px; }
+    input, select { width: 100%; padding: 8px; margin-top: 5px; }
+    button { background: #28a745; color: white; padding: 10px; border: none; cursor: pointer; margin-top: 10px; }
+    button:hover { background: #218838; }
+    #resultado { margin-top: 20px; padding: 10px; background: #e9ecef; border-radius: 5px; }
+    #carrinho { margin-top: 20px; padding: 10px; background: #d4edda; border-radius: 5px; display: none; }
+    .upload-section { margin-top: 20px; padding: 10px; background: #f8f9fa; border-radius: 5px; }
+    .laje-section { margin-top: 20px; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+    .laje-fields { display: flex; gap: 10px; flex-wrap: wrap; }
+    .laje-fields > div { flex: 1; min-width: 200px; }
+    .error-box { white-space: pre-wrap; background: #f8d7da; padding: 12px; border: 1px solid #f5c2c7; border-radius: 6px; margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Calculadora e Compra de Lajes</h1>
+    <p>Faça upload do projeto para análise automática por IA (detecta múltiplas lajes) ou adicione manualmente. Todas as medidas em metros.</p>
 
-[observability]
-enabled = true
+    <div class="upload-section">
+      <h3>Upload do Projeto (Análise por IA)</h3>
+      <label for="uploadImagem">Upload Imagem do Projeto (JPG/PNG):</label>
+      <input type="file" id="uploadImagem" accept=".jpg,.jpeg,.png" />
+      <button onclick="analisarComIA()">Analisar com IA</button>
+      <p><em>A IA detectará lajes e criará campos dinâmicos.</em></p>
+    </div>
+
+    <div id="lajesContainer">
+      <!-- Campos dinâmicos para lajes serão adicionados aqui -->
+    </div>
+
+    <button onclick="adicionarLajeManual()">Adicionar Laje Manual</button>
+
+    <label for="precoViga">Preço por Metro de Viga (R$):</label>
+    <input type="number" id="precoViga" placeholder="Ex: 50" step="0.01" required />
+
+    <label for="precoIsopor">Preço por Metro Linear de Isopor (R$):</label>
+    <input type="number" id="precoIsopor" placeholder="Ex: 20" step="0.01" required />
+
+    <button onclick="calcular()">Calcular Orçamento do Projeto</button>
+
+    <div id="resultado"></div>
+
+    <button id="comprarBtn" onclick="adicionarCarrinho()" style="display: none;">Adicionar ao Carrinho</button>
+
+    <div id="carrinho"></div>
+  </div>
+
+  <script>
+    // ===== Visor de erros =====
+    window.addEventListener('error', (e) => {
+      const box = document.createElement('pre');
+      box.className = 'error-box';
+      box.textContent = 'JS Error: ' + (e?.error?.stack || e.message);
+      document.body.prepend(box);
+    });
+    window.addEventListener('unhandledrejection', (e) => {
+      const box = document.createElement('pre');
+      box.className = 'error-box';
+      box.textContent = 'Unhandled Promise Rejection: ' + (e?.reason?.stack || e.reason);
+      document.body.prepend(box);
+    });
+
+    // ===== Config da API =====
+    const API_BASE =
+      (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+        ? 'http://127.0.0.1:8788'
+        : 'https://SEU-PROJETO.pages.dev';  // Substitua pelo seu domínio
+
+    let lajes = []; // Array para armazenar dados das lajes
+
+    async function analisarComIA() {
+      const imgFile = document.getElementById('uploadImagem').files[0];
+      
+      if (!imgFile) {
+        alert('Selecione uma imagem para análise.');
+        return;
+      }
+      
+      const formData = new FormData();
+      formData.append('file', imgFile);
+      
+      try {
+        const response = await fetch(`${API_BASE}/analisar`, { method: 'POST', body: formData });
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data?.error || 'Erro na análise.');
+        }
+        
+        if (!Array.isArray(data) || data.length === 0) {
+          alert('Nenhuma laje detectada na imagem. Adicione manualmente.');
+          return;
+        }
+        
+        lajes = data;
+        renderizarLajes();
+        alert(`Análise concluída! ${data.length} laje(s) detectada(s).`);
+      } catch (error) {
+        console.error('Erro:', error);
+        alert('Erro: ' + error.message);
+      }
+    }
+    
+    function renderizarLajes() {
+      const container = document.getElementById('lajesContainer');
+      container.innerHTML = '';
+      
+      lajes.forEach((laje, index) => {
+        const section = document.createElement('div');
+        section.className = 'laje-section';
+        section.innerHTML = `
+          <h4>Laje ${index + 1}</h4>
+          <div class="laje-fields">
+            <div>
+              <label>Largura (m):</label>
+              <input type="number" class="largura" value="${laje.largura || ''}" step="0.01" required>
+            </div>
+            <div>
+              <label>Comprimento (m, mínimo 1m):</label>
+              <input type="number" class="comprimento" value="${laje.comprimento || ''}" step="0.01" min="1" required>
+            </div>
+            <div>
+              <label>Altura da Viga:</label>
+              <select class="alturaViga" required>
+                <option value="">Selecione</option>
+                <option value="H8" ${laje.alturaViga === 'H8' ? 'selected' : ''}>H8 (8 cm)</option>
+                <option value="H10" ${laje.alturaViga === 'H10' ? 'selected' : ''}>H10 (10 cm)</option>
+                <option value="H12" ${laje.alturaViga === 'H12' ? 'selected' : ''}>H12 (12 cm)</option>
+                <option value="H14" ${laje.alturaViga === 'H14' ? 'selected' : ''}>H14 (14 cm)</option>
+                <option value="H16" ${laje.alturaViga === 'H16' ? 'selected' : ''}>H16 (16 cm)</option>
+                <option value="H18" ${laje.alturaViga === 'H18' ? 'selected' : ''}>H18 (18 cm)</option>
+                <option value="H20" ${laje.alturaViga === 'H20' ? 'selected' : ''}>H20 (20 cm)</option>
+                <option value="H22" ${laje.alturaViga === 'H22' ? 'selected' : ''}>H22 (22 cm)</option>
+                <option value="H24" ${laje.alturaViga === 'H24' ? 'selected' : ''}>H24 (24 cm)</option>
+                <option value="H26" ${laje.alturaViga === 'H26' ? 'selected' : ''}>H26 (26 cm)</option>
+                <option value="H28" ${laje.alturaViga === 'H28' ? 'selected' : ''}>H28 (28 cm)</option>
+                <option value="H30" ${laje.alturaViga === 'H30' ? 'selected' : ''}>H30 (30 cm)</option>
+                <option value="H32" ${laje.alturaViga === 'H32' ? 'selected' : ''}>H32 (32 cm)</option>
+              </select>
+            </div>
+            <button onclick="removerLaje(${index})">Remover Laje</button>
+          </div>
+        `;
+        container.appendChild(section);
+      });
+    }
+    
+    function adicionarLajeManual() {
+      lajes.push({ largura: '', comprimento: '', alturaViga: '' });
+      renderizarLajes();
+    }
+    
+    function removerLaje(index) {
+      lajes.splice(index, 1);
+      renderizarLajes();
+    }
+    
+    function calcular() {
+      const precoViga = parseFloat(document.getElementById('precoViga').value);
+      const precoIsopor = parseFloat(document.getElementById('precoIsopor').value);
+      
+      if (!isFinite(precoViga) || !isFinite(precoIsopor) || lajes.length === 0) {
+        alert('Preencha preços e adicione pelo menos uma laje.');
+        return;
+      }
+      
+      let totalViga = 0;
+      let totalIsopor = 0;
+      let totalCustoViga = 0;
+      let totalCustoIsopor = 0;
+      let detalhes = '';
+      
+      lajes.forEach((laje, index) => {
+        const W = parseFloat(document.querySelectorAll('.largura')[index].value);
+        let C = parseFloat(document.querySelectorAll('.comprimento')[index].value);
+        const alturaViga = document.querySelectorAll('.alturaViga')[index].value;
+        
+        if (!isFinite(W) || !isFinite(C) || !alturaViga) {
+          alert(`Preencha todos os campos da Laje ${index + 1}.`);
+          return;
+        }
+        
+        if (C < 1) {
+          alert(`Comprimento mínimo é 1m na Laje ${index + 1}. Ajustando.`);
+          C = 1;
+        }
+        C = Math.round(C / 0.1) * 0.1;
+        
+        const vigaLargura = 0.13;
+        const isoporLargura = 0.3;
+        const ciclo = vigaLargura + isoporLargura;
+        const n = Math.ceil((W + isoporLargura) / ciclo);
+        const m = n - 1;
+        const larguraCoberta = n * vigaLargura + m * isoporLargura;
+        
+        const qtdViga = n * C;
+        const qtdIsopor = qtdViga;
+        
+        totalViga += qtdViga;
+        totalIsopor += qtdIsopor;
+        totalCustoViga += qtdViga * precoViga;
+        totalCustoIsopor += qtdIsopor * precoIsopor;
+        
+        detalhes += `
+          <h5>Laje ${index + 1} (${alturaViga}):</h5>
+          <p>Número de Vigas: ${n} | EPS: ${qtdIsopor.toFixed(2)}</p>
+          <p>Largura Coberta: ${larguraCoberta.toFixed(2)}m | Comprimento: ${C.toFixed(2)}m</p>
+          <p>Viga: ${qtdViga.toFixed(2)}m | EPS: ${qtdIsopor.toFixed(2)}m</p>
+        `;
+      });
+      
+      const total = totalCustoViga + totalCustoIsopor;
+      
+      document.getElementById('resultado').innerHTML = `
+        <h3>Resultado do Projeto:</h3>
+        ${detalhes}
+        <h4>Totais do Projeto:</h4>
+        <p>Total Vigas: ${totalViga.toFixed(2)} metros lineares</p>
+        <p>Total EPS: ${totalIsopor.toFixed(2)} metros lineares</p>
+        <p>Custo Total Vigas: ${formatBRL(totalCustoViga)}</p>
+        <p>Custo Total EPS: ${formatBRL(totalCustoIsopor)}</p>
+        <p><strong>Total do Projeto: ${formatBRL(total)}</strong></p>
+      `;
+      
+      document.getElementById('comprarBtn').style.display = 'block';
+    }
+    
+    function adicionarCarrinho() {
+      const resultado = document.getElementById('resultado').innerText;
+      document.getElementById('carrinho').innerHTML = `
+        <h3>Carrinho de Compras</h3>
+        <p>Projeto adicionado:</p>
+        <pre>${resultado}</pre>
+        <p><em>Simulação: Em um site real, isso seria enviado para um sistema de pagamento.</em></p>
+      `;
+      document.getElementById('carrinho').style.display = 'block';
+    }
+    
+    function formatBRL(v) {
+      return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+    
+    console.log('Front carregado ✓');
+  </script>
+</body>
+</html>
