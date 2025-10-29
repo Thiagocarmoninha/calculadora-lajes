@@ -1,8 +1,5 @@
-name = "lajes-backend"
-main = "src/index.ts"          # ou dist/index.js
-compatibility_date = "2024-10-01"
-
-# Se for usar domínios/rotas personalizadas (opcional)
-# routes = [{ pattern = "api.seudominio.com/analisar", zone_name = "seudominio.com" }]
-
-# Variáveis / bindings podem ir via dashboard ou secrets
+const prompt = `
+  Analise esta imagem de um projeto de construção. Detecte todas as lajes (cômodos) e extraia dimensões para cada uma (largura e comprimento em metros, altura da viga como HX).
+  Retorne apenas um array JSON: [{"largura": X.X, "comprimento": Y.Y, "alturaViga": "HX"}, ...].
+  Se não encontrar lajes, retorne [].
+`;
