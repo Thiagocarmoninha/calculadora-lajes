@@ -20,14 +20,14 @@
 <body>
     <div class="container">
         <h1>Calculadora e Compra de Lajes</h1>
-        <p>Faça upload de uma imagem do projeto para análise por IA ou insira as medidas manualmente. Todas as medidas em metros.</p>
+        <p>Faça upload de uma imagem do projeto para análise automática por IA ou insira as medidas manualmente. Todas as medidas em metros.</p>
         
         <div class="upload-section">
             <h3>Opção 1: Upload para Análise por IA</h3>
             <label for="uploadImagem">Upload Imagem do Projeto (JPG/PNG):</label>
             <input type="file" id="uploadImagem" accept=".jpg,.jpeg,.png">
             <button onclick="analisarComIA()">Analisar com IA</button>
-            <p><em>A IA analisará a imagem e preencherá os campos automaticamente.</em></p>
+            <p><em>A IA analisará a imagem e preencherá largura, comprimento e altura automaticamente.</em></p>
         </div>
         
         <h3>Opção 2: Inserção Manual</h3>
@@ -84,16 +84,17 @@
             formData.append('file', file);
             
             try {
-                // Substitua pela URL do seu backend hospedado (ex.: https://seu-backend.vercel.app/analisar)
-                const response = await fetch('https://seu-backend-hospedado.vercel.app/analisar', {
+                // Substitua pela URL real do seu backend no Cloudflare
+                const response = await fetch('https://seu-backend-cloudflare.com/analisar', {
                     method: 'POST',
                     body: formData,
                 });
                 
-                if (!response.ok) throw new Error('Erro na análise.');
+                if (!response.ok) throw new Error('Erro na análise. Verifique a imagem ou o backend.');
                 
                 const data = await response.json();
                 
+                // Preencher campos com dados da IA
                 document.getElementById('largura').value = data.largura || 2.0;
                 document.getElementById('comprimento').value = data.comprimento || 5.0;
                 document.getElementById('alturaViga').value = data.alturaViga || 'H12';
@@ -142,4 +143,28 @@
                 <p>Número de Vigas: ${n}</p>
                 <p>Número de EPS (Isopor): ${qtdIsopor}</p>
                 <p>Largura Coberta: ${larguraCoberta.toFixed(2)} metros</p>
-                <p>Comprimento Ajustado da Laje: ${C.toFixed(2)}
+                <p>Comprimento Ajustado da Laje: ${C.toFixed(2)} metros</p>
+                <p>Quantidade de Viga: ${qtdViga.toFixed(2)} metros lineares</p>
+                <p>Quantidade de EPS: ${qtdIsopor.toFixed(2)} metros lineares</p>
+                <h4>Orçamento:</h4>
+                <p>Custo Vigas: R$ ${custoViga.toFixed(2)}</p>
+                <p>Custo EPS: R$ ${custoIsopor.toFixed(2)}</p>
+                <p><strong>Total: R$ ${total.toFixed(2)}</strong></p>
+            `;
+            
+            document.getElementById('comprarBtn').style.display = 'block';
+        }
+        
+        function adicionarCarrinho() {
+            const resultado = document.getElementById('resultado').innerText;
+            document.getElementById('carrinho').innerHTML = `
+                <h3>Carrinho de Compras</h3>
+                <p>Item adicionado:</p>
+                <pre>${resultado}</pre>
+                <p><em>Simulação: Em um site real, isso seria enviado para um sistema de pagamento.</em></p>
+            `;
+            document.getElementById('carrinho').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
