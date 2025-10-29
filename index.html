@@ -1,256 +1,281 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Compra de Lajes - Calculadora e Orçamento</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; }
-    .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-    h1 { text-align: center; color: #333; }
-    label { display: block; margin-top: 10px; }
-    input, select { width: 100%; padding: 8px; margin-top: 5px; }
-    button { background: #28a745; color: white; padding: 10px; border: none; cursor: pointer; margin-top: 10px; }
-    button:hover { background: #218838; }
-    #resultado { margin-top: 20px; padding: 10px; background: #e9ecef; border-radius: 5px; }
-    #carrinho { margin-top: 20px; padding: 10px; background: #d4edda; border-radius: 5px; display: none; }
-    .upload-section { margin-top: 20px; padding: 10px; background: #f8f9fa; border-radius: 5px; }
-    .laje-section { margin-top: 20px; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
-    .laje-fields { display: flex; gap: 10px; flex-wrap: wrap; }
-    .laje-fields > div { flex: 1; min-width: 200px; }
-    .error-box { white-space: pre-wrap; background: #f8d7da; padding: 12px; border: 1px solid #f5c2c7; border-radius: 6px; margin-bottom: 20px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orçamento e Compra de Lajes</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        input, select {
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            display: none;
+        }
+        #aiResult {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #d4edda;
+            border-radius: 4px;
+            display: none;
+        }
+        #buy {
+            margin-top: 10px;
+            background-color: #007bff;
+        }
+        #buy:hover {
+            background-color: #0056b3;
+        }
+        #processFile {
+            background-color: #ffc107;
+            color: black;
+        }
+        #processFile:hover {
+            background-color: #e0a800;
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Calculadora e Compra de Lajes</h1>
-    <p>Faça upload do projeto para análise automática por IA (detecta múltiplas lajes) ou adicione manualmente. Todas as medidas em metros.</p>
+    <div class="container">
+        <h1>Orçamento e Compra de Lajes</h1>
+        <p>Insira as dimensões da laje (comprimento e largura em metros), selecione a altura da viga e os preços para calcular o orçamento. A laje é composta por vigas (13 cm de largura) e EPS (isopor, 30 cm x 100 cm), sempre terminando com uma viga para apoio. O comprimento mínimo da viga é 1 metro, com incrementos de 0,10 metros.</p>
+        
+        <!-- Seção para upload e processamento com IA -->
+        <h2>Processar Arquivo com IA (OpenAI)</h2>
+        <p>Faça upload de uma imagem (JPG/PNG) ou PDF para que a IA identifique as lajes em cada cômodo e extraia medidas.</p>
+        <label for="apiKey">Chave da API OpenAI:</label>
+        <input type="password" id="apiKey" placeholder="Insira sua chave API" required>
+        
+        <label for="fileUpload">Arquivo (Imagem ou PDF):</label>
+        <input type="file" id="fileUpload" accept=".jpg,.jpeg,.png,.pdf" required>
+        
+        <button type="button" id="processFile" onclick="processFile()">Processar com IA</button>
+        
+        <div id="aiResult">
+            <h3>Resultados da IA:</h3>
+            <p id="aiOutput"></p>
+        </div>
+        
+        <!-- Formulário de orçamento -->
+        <h2>Calcular Orçamento</h2>
+        <form id="calcForm">
+            <label for="length">Comprimento da laje (m, mínimo 1, incrementos 0.10):</label>
+            <input type="number" id="length" step="0.10" min="1" required>
 
-    <div class="upload-section">
-      <h3>Upload do Projeto (Análise por IA)</h3>
-      <label for="uploadImagem">Upload Imagem do Projeto (JPG/PNG):</label>
-      <input type="file" id="uploadImagem" accept=".jpg,.jpeg,.png" />
-      <button onclick="analisarComIA()">Analisar com IA</button>
-      <p><em>A IA detectará lajes e criará campos dinâmicos.</em></p>
+            <label for="width">Largura da laje (m):</label>
+            <input type="number" id="width" step="0.01" required>
+
+            <label for="height">Altura da viga:</label>
+            <select id="height" required>
+                <option value="8">H8</option>
+                <option value="12">H12</option>
+                <option value="16">H16</option>
+                <option value="20">H20</option>
+                <option value="24">H24</option>
+                <!-- Adicione mais opções se necessário -->
+            </select>
+
+            <label for="priceViga">Preço por metro de viga (R$):</label>
+            <input type="number" id="priceViga" step="0.01" required>
+
+            <label for="priceIsopor">Preço por m² de EPS (isopor) (R$):</label>
+            <input type="number" id="priceIsopor" step="0.01" required>
+
+            <button type="button" onclick="calculate()">Calcular Orçamento</button>
+        </form>
+        <div id="result">
+            <h3>Resultado do Orçamento:</h3>
+            <p id="vigas"></p>
+            <p id="eps"></p>
+            <p id="totalCost"></p>
+            <button id="buy" onclick="buy()">Comprar</button>
+        </div>
     </div>
 
-    <div id="lajesContainer">
-      <!-- Campos dinâmicos para lajes serão adicionados aqui -->
-    </div>
+    <script>
+        async function processFile() {
+            const apiKey = document.getElementById('apiKey').value;
+            const fileInput = document.getElementById('fileUpload');
+            const file = fileInput.files[0];
 
-    <button onclick="adicionarLajeManual()">Adicionar Laje Manual</button>
+            if (!apiKey || !file) {
+                alert('Por favor, insira a chave API e selecione um arquivo.');
+                return;
+            }
 
-    <label for="precoViga">Preço por Metro de Viga (R$):</label>
-    <input type="number" id="precoViga" placeholder="Ex: 50" step="0.01" required />
+            const fileType = file.type;
+            let content;
 
-    <label for="precoIsopor">Preço por Metro Linear de Isopor (R$):</label>
-    <input type="number" id="precoIsopor" placeholder="Ex: 20" step="0.01" required />
-
-    <button onclick="calcular()">Calcular Orçamento do Projeto</button>
-
-    <div id="resultado"></div>
-
-    <button id="comprarBtn" onclick="adicionarCarrinho()" style="display: none;">Adicionar ao Carrinho</button>
-
-    <div id="carrinho"></div>
-  </div>
-
-  <script>
-    // ===== Visor de erros =====
-    window.addEventListener('error', (e) => {
-      const box = document.createElement('pre');
-      box.className = 'error-box';
-      box.textContent = 'JS Error: ' + (e?.error?.stack || e.message);
-      document.body.prepend(box);
-    });
-    window.addEventListener('unhandledrejection', (e) => {
-      const box = document.createElement('pre');
-      box.className = 'error-box';
-      box.textContent = 'Unhandled Promise Rejection: ' + (e?.reason?.stack || e.reason);
-      document.body.prepend(box);
-    });
-
-    // ===== Config da API =====
-    const API_BASE =
-      (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
-        ? 'http://127.0.0.1:8788'
-        : 'https://SEU-PROJETO.pages.dev';  // Substitua pelo seu domínio
-
-    let lajes = []; // Array para armazenar dados das lajes
-
-    async function analisarComIA() {
-      const imgFile = document.getElementById('uploadImagem').files[0];
-      
-      if (!imgFile) {
-        alert('Selecione uma imagem para análise.');
-        return;
-      }
-      
-      const formData = new FormData();
-      formData.append('file', imgFile);
-      
-      try {
-        const response = await fetch(`${API_BASE}/analisar`, { method: 'POST', body: formData });
-        const data = await response.json();
-        
-        if (!response.ok) {
-          throw new Error(data?.error || 'Erro na análise.');
+            if (fileType.startsWith('image/')) {
+                // Para imagens, converter para base64
+                content = await toBase64(file);
+                // Usar GPT-4 Vision
+                const response = await callOpenAI(apiKey, `Analise esta imagem de um projeto de construção. Identifique cada cômodo e extraia as medidas das lajes (comprimento e largura em metros). Retorne no formato: laje1: comprimento x largura, laje2: ..., etc.`, content, true);
+                displayAIResult(response);
+            } else if (fileType === 'application/pdf') {
+                // Para PDFs, assumir que é texto extraído (em um site real, use uma biblioteca como pdf-parse)
+                // Simulação: ler como texto se possível, ou alertar
+                alert('Processamento de PDFs requer extração de texto. Em um site real, integre uma biblioteca como pdf-parse. Por enquanto, converta o PDF para imagem.');
+                return;
+            } else {
+                alert('Tipo de arquivo não suportado.');
+                return;
+            }
         }
-        
-        if (!Array.isArray(data) || data.length === 0) {
-          alert('Nenhuma laje detectada na imagem. Adicione manualmente.');
-          return;
+
+        async function toBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result.split(',')[1]); // Remover prefixo data:...
+                reader.onerror = error => reject(error);
+            });
         }
-        
-        lajes = data;
-        renderizarLajes();
-        alert(`Análise concluída! ${data.length} laje(s) detectada(s).`);
-      } catch (error) {
-        console.error('Erro:', error);
-        alert('Erro: ' + error.message);
-      }
-    }
-    
-    function renderizarLajes() {
-      const container = document.getElementById('lajesContainer');
-      container.innerHTML = '';
-      
-      lajes.forEach((laje, index) => {
-        const section = document.createElement('div');
-        section.className = 'laje-section';
-        section.innerHTML = `
-          <h4>Laje ${index + 1}</h4>
-          <div class="laje-fields">
-            <div>
-              <label>Largura (m):</label>
-              <input type="number" class="largura" value="${laje.largura || ''}" step="0.01" required>
-            </div>
-            <div>
-              <label>Comprimento (m, mínimo 1m):</label>
-              <input type="number" class="comprimento" value="${laje.comprimento || ''}" step="0.01" min="1" required>
-            </div>
-            <div>
-              <label>Altura da Viga:</label>
-              <select class="alturaViga" required>
-                <option value="">Selecione</option>
-                <option value="H8" ${laje.alturaViga === 'H8' ? 'selected' : ''}>H8 (8 cm)</option>
-                <option value="H10" ${laje.alturaViga === 'H10' ? 'selected' : ''}>H10 (10 cm)</option>
-                <option value="H12" ${laje.alturaViga === 'H12' ? 'selected' : ''}>H12 (12 cm)</option>
-                <option value="H14" ${laje.alturaViga === 'H14' ? 'selected' : ''}>H14 (14 cm)</option>
-                <option value="H16" ${laje.alturaViga === 'H16' ? 'selected' : ''}>H16 (16 cm)</option>
-                <option value="H18" ${laje.alturaViga === 'H18' ? 'selected' : ''}>H18 (18 cm)</option>
-                <option value="H20" ${laje.alturaViga === 'H20' ? 'selected' : ''}>H20 (20 cm)</option>
-                <option value="H22" ${laje.alturaViga === 'H22' ? 'selected' : ''}>H22 (22 cm)</option>
-                <option value="H24" ${laje.alturaViga === 'H24' ? 'selected' : ''}>H24 (24 cm)</option>
-                <option value="H26" ${laje.alturaViga === 'H26' ? 'selected' : ''}>H26 (26 cm)</option>
-                <option value="H28" ${laje.alturaViga === 'H28' ? 'selected' : ''}>H28 (28 cm)</option>
-                <option value="H30" ${laje.alturaViga === 'H30' ? 'selected' : ''}>H30 (30 cm)</option>
-                <option value="H32" ${laje.alturaViga === 'H32' ? 'selected' : ''}>H32 (32 cm)</option>
-              </select>
-            </div>
-            <button onclick="removerLaje(${index})">Remover Laje</button>
-          </div>
-        `;
-        container.appendChild(section);
-      });
-    }
-    
-    function adicionarLajeManual() {
-      lajes.push({ largura: '', comprimento: '', alturaViga: '' });
-      renderizarLajes();
-    }
-    
-    function removerLaje(index) {
-      lajes.splice(index, 1);
-      renderizarLajes();
-    }
-    
-    function calcular() {
-      const precoViga = parseFloat(document.getElementById('precoViga').value);
-      const precoIsopor = parseFloat(document.getElementById('precoIsopor').value);
-      
-      if (!isFinite(precoViga) || !isFinite(precoIsopor) || lajes.length === 0) {
-        alert('Preencha preços e adicione pelo menos uma laje.');
-        return;
-      }
-      
-      let totalViga = 0;
-      let totalIsopor = 0;
-      let totalCustoViga = 0;
-      let totalCustoIsopor = 0;
-      let detalhes = '';
-      
-      lajes.forEach((laje, index) => {
-        const W = parseFloat(document.querySelectorAll('.largura')[index].value);
-        let C = parseFloat(document.querySelectorAll('.comprimento')[index].value);
-        const alturaViga = document.querySelectorAll('.alturaViga')[index].value;
-        
-        if (!isFinite(W) || !isFinite(C) || !alturaViga) {
-          alert(`Preencha todos os campos da Laje ${index + 1}.`);
-          return;
+
+        async function callOpenAI(apiKey, prompt, imageBase64, isImage = false) {
+            const url = 'https://api.openai.com/v1/chat/completions';
+            const headers = {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json'
+            };
+
+            const messages = [{ role: 'user', content: prompt }];
+            if (isImage) {
+                messages[0].content = [
+                    { type: 'text', text: prompt },
+                    { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${imageBase64}` } }
+                ];
+            }
+
+            const body = {
+                model: isImage ? 'gpt-4-vision-preview' : 'gpt-4',
+                messages: messages,
+                max_tokens: 500
+            };
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(body)
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    return data.choices[0].message.content;
+                } else {
+                    throw new Error(data.error.message);
+                }
+            } catch (error) {
+                alert('Erro ao chamar OpenAI: ' + error.message);
+                return null;
+            }
         }
-        
-        if (C < 1) {
-          alert(`Comprimento mínimo é 1m na Laje ${index + 1}. Ajustando.`);
-          C = 1;
+
+        function displayAIResult(result) {
+            if (result) {
+                document.getElementById('aiOutput').textContent = result;
+                document.getElementById('aiResult').style.display = 'block';
+            }
         }
-        C = Math.round(C / 0.1) * 0.1;
-        
-        const vigaLargura = 0.13;
-        const isoporLargura = 0.3;
-        const ciclo = vigaLargura + isoporLargura;
-        const n = Math.ceil((W + isoporLargura) / ciclo);
-        const m = n - 1;
-        const larguraCoberta = n * vigaLargura + m * isoporLargura;
-        
-        const qtdViga = n * C;
-        const qtdIsopor = qtdViga;
-        
-        totalViga += qtdViga;
-        totalIsopor += qtdIsopor;
-        totalCustoViga += qtdViga * precoViga;
-        totalCustoIsopor += qtdIsopor * precoIsopor;
-        
-        detalhes += `
-          <h5>Laje ${index + 1} (${alturaViga}):</h5>
-          <p>Número de Vigas: ${n} | EPS: ${qtdIsopor.toFixed(2)}</p>
-          <p>Largura Coberta: ${larguraCoberta.toFixed(2)}m | Comprimento: ${C.toFixed(2)}m</p>
-          <p>Viga: ${qtdViga.toFixed(2)}m | EPS: ${qtdIsopor.toFixed(2)}m</p>
-        `;
-      });
-      
-      const total = totalCustoViga + totalCustoIsopor;
-      
-      document.getElementById('resultado').innerHTML = `
-        <h3>Resultado do Projeto:</h3>
-        ${detalhes}
-        <h4>Totais do Projeto:</h4>
-        <p>Total Vigas: ${totalViga.toFixed(2)} metros lineares</p>
-        <p>Total EPS: ${totalIsopor.toFixed(2)} metros lineares</p>
-        <p>Custo Total Vigas: ${formatBRL(totalCustoViga)}</p>
-        <p>Custo Total EPS: ${formatBRL(totalCustoIsopor)}</p>
-        <p><strong>Total do Projeto: ${formatBRL(total)}</strong></p>
-      `;
-      
-      document.getElementById('comprarBtn').style.display = 'block';
-    }
-    
-    function adicionarCarrinho() {
-      const resultado = document.getElementById('resultado').innerText;
-      document.getElementById('carrinho').innerHTML = `
-        <h3>Carrinho de Compras</h3>
-        <p>Projeto adicionado:</p>
-        <pre>${resultado}</pre>
-        <p><em>Simulação: Em um site real, isso seria enviado para um sistema de pagamento.</em></p>
-      `;
-      document.getElementById('carrinho').style.display = 'block';
-    }
-    
-    function formatBRL(v) {
-      return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    }
-    
-    console.log('Front carregado ✓');
-  </script>
+
+        function calculate() {
+            const L = parseFloat(document.getElementById('length').value);
+            const W = parseFloat(document.getElementById('width').value) * 100; // converter para cm
+            const height = document.getElementById('height').value;
+            const priceViga = parseFloat(document.getElementById('priceViga').value);
+            const priceIsopor = parseFloat(document.getElementById('priceIsopor').value);
+
+            if (isNaN(L) || isNaN(W) || isNaN(priceViga) || isNaN(priceIsopor) || L < 1 || W <= 0 || priceViga < 0 || priceIsopor < 0) {
+                alert('Por favor, insira valores válidos. Comprimento mínimo 1m.');
+                return;
+            }
+
+            // Verificar se L é múltiplo de 0.10 (aproximadamente)
+            if ((L * 10) % 1 !== 0) {
+                alert('O comprimento deve ser em incrementos de 0,10 metros.');
+                return;
+            }
+
+            // Largura da viga: 13 cm, EPS: 30 cm
+            // Sequência: viga, EPS, viga, EPS, ..., viga (termina com viga)
+            let numVigas = Math.ceil((W + 30) / 43);
+            let numIsoporSections = numVigas - 1;
+
+            // Ajustar se necessário
+            let coveredWidth = numVigas * 13 + numIsoporSections * 30;
+            if (coveredWidth < W) {
+                numVigas++;
+                numIsoporSections++;
+            }
+
+            // Total metros lineares de viga: numVigas * L
+            const totalVigaMeters = numVigas * L;
+
+            // Quantidade de EPS: total metros lineares de viga (cada EPS cobre 1m linear)
+            const numEPS = totalVigaMeters;
+
+            // Área total de EPS: numEPS * 0.30 m²
+            const totalEPSArea = numEPS * 0.30;
+
+            // Custos
+            const costVigas = totalVigaMeters * priceViga;
+            const costEPS = totalEPSArea * priceIsopor;
+            const totalCost = costVigas + costEPS;
+
+            // Exibir resultados
+            document.getElementById('vigas').textContent = `Quantidade de vigas: ${totalVigaMeters.toFixed(2)} metros (altura ${height} cm)`;
+            document.getElementById('eps').textContent = `Quantidade de EPS: ${numEPS.toFixed(2)} unidades (área total: ${totalEPSArea.toFixed(2)} m²)`;
+            document.getElementById('totalCost').textContent = `Custo total: R$ ${totalCost.toFixed(2)}`;
+            document.getElementById('result').style.display = 'block';
+        }
+
+        function buy() {
+            alert('Compra realizada! (Simulação - em um site real, isso redirecionaria para um sistema de pagamento.)');
+            // Aqui você pode integrar com um sistema de e-commerce real, como Stripe ou PayPal.
+        }
+    </script>
 </body>
 </html>
